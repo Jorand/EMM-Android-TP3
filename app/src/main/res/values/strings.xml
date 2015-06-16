@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">TP3</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="act_main_subscribe_button">Créer un compte</string>
+    <string name="act_main_login_button">J’ai déjà un compte</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_subscribe">SubscribeActivity</string>
+    <string name="act_subscribe_title">Créer un compte</string>
+    <string name="form_email">Email</string>
+    <string name="act_subscribe_form_name">Nom</string>
+    <string name="form_password">Mot de passe</string>
+    <string name="act_subscribe_button">S\'inscrire</string>
+    <string name="from_empty">Veuillez remplire tous les champs</string>
+    <string name="title_activity_my_app">MyAppActivity</string>
+    <string name="action_logout">Déconnexion</string>
+    <string name="act_myapp_welcome">Bienvenue</string>
+    <string name="act_login_title">Se connecter</string>
+    <string name="act_login_button">Connexion</string>
+    <string name="act_login_wrong">l’email ou le mot de passe sont incorrects</string>
+    <string name="error_user_exist">Email déjà enregistré</string>
+    <string name="error_server_off">Serveur non accessible</string>
+    <string name="error_wrong_password">Mot de passe invalide</string>
+    <string name="error_wrong_login">Nous n\'avons pas trouver de compte associé à l\'adresse email et au mot de passe indiqués.</string>
+    <string name="error_offline">La connexion à internet n\'a pas pu être établie.</string>
+    <string name="dialog_exit_msg">Êtes vous certain(e) de vouloir vous déconnecter ?</string>
+    <string name="dialog_exit_title">Se déconnecter ?</string>
+    <string name="yes">Oui</string>
+    <string name="cancel">Non</string>
+</resources>
