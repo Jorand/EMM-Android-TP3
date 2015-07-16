@@ -5,10 +5,6 @@ import android.app.Application;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 
-/**
- * Created by jorand on 16/06/15.
- */
-
 public class VolleyApplication extends Application {
 
     private static VolleyApplication sInstance;

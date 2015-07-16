@@ -1,23 +1,20 @@
 package com.beta.tp3;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.content.Context;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
 import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
+import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -27,133 +24,126 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
-public class LoginActivity extends AppCompatActivity {
-
-    private MySingleton mySingleton;
-
-    private SharedPreferences preferences;
+public class LoginActivity extends AppActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        // Auto-complete suggestions user account emails
+        ArrayList<String> accountsEmails = getUserAccountEmail();
+        setAutoCompleteText(R.id.act_login_email, accountsEmails);
 
-        //Pattern emailPattern = Patterns.EMAIL_ADDRESS;
+        EditText passwordField = (EditText) findViewById(R.id.act_login_password);
+        passwordField.setTransformationMethod(new PasswordTransformationMethod());
 
-        final ArrayList<String> stringArrayList = new ArrayList<>();
-
-        try{
-            AccountManager manager = (AccountManager) getSystemService(ACCOUNT_SERVICE);
-            Account[] accounts = manager.getAccountsByType("com.google");
-
-            for (Account account : accounts) {
-                stringArrayList.add(account.name);
-            }
-
-            AutoCompleteTextView textView = (AutoCompleteTextView) findViewById(R.id.act_login_email);
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, stringArrayList);
-            textView.setAdapter(adapter);
-
-        }
-        catch(Exception e)
-        {
-            Log.i("Exception", "Exception:" + e) ;
-        }
     }
 
     public void onClickLogin(View view) {
 
-        EditText editTextEmail = (EditText) findViewById(R.id.act_login_email);
-        final String email = editTextEmail.getText().toString();
+        final String email = getEditTextValue(R.id.act_login_email);
+        final String password = getEditTextValue(R.id.act_login_password);
 
-        EditText editTextPassword = (EditText) findViewById(R.id.act_login_password);
-        final String password = editTextPassword.getText().toString();
+        if (!email.isEmpty() && !password.isEmpty()) {
 
-        if (!email.isEmpty() || !password.isEmpty()) {
+            final ProgressDialog pDialog = new ProgressDialog(this);
+            pDialog.setMessage("Loading...");
+            pDialog.show();
 
+            String url = "http://questioncode.fr:10007/auth/local";
             String json = "{\"email\": \"" + email + "\", \"password\": \"" + password + "\"}";
 
-            if(isOnline()) {
+            JsonObjectRequest jsObjRequest = new JsonObjectRequest(Request.Method.POST, url, json,
+                new Response.Listener<JSONObject>() {
 
-                JsonObjectRequest jsObjRequest = new JsonObjectRequest(Request.Method.POST, "http://questioncode.fr:10007/auth/local", json,
-                        new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        pDialog.hide();
 
-                            @Override
-                            public void onResponse(JSONObject response) {
+                        try {
+                            JSONObject json = new JSONObject(response.toString());
+                            String token = json.getString("token");
 
-                                String token;
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.putString(email + "_token", token);
+                            editor.putString("ACTIVE_USER", email);
+                            editor.apply();
 
-                                JSONObject json;
+                            Intent mainIntent = new Intent(getApplicationContext(), MainActivity.class);
+                            mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            startActivity(mainIntent);
+                            finish();
 
-                                try {
+                        } catch (JSONException e) {
 
-                                    json = new JSONObject(response.toString());
-                                    token = json.getString("token");
+                            Toast toast = Toast.makeText(getApplicationContext(), R.string.act_login_error, Toast.LENGTH_LONG);
+                            toast.show();
+                        }
+                    }
 
-                                    SharedPreferences.Editor editor = preferences.edit();
-                                    editor.putString(email + "_token", token);
-                                    editor.putString("ACTIVE_USER", email);
-                                    editor.apply();
+                },
 
-                                    Intent mainIntent = new Intent(getApplicationContext(), MainActivity.class);
-                                    mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                    startActivity(mainIntent);
-                                    finish();
+                new Response.ErrorListener() {
 
-                                } catch (JSONException e) {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        pDialog.hide();
 
-                                    Toast toast = Toast.makeText(getApplicationContext(), R.string.act_login_wrong, Toast.LENGTH_LONG);
+                        if (error instanceof NoConnectionError) {
+                            Toast toast = Toast.makeText(getApplicationContext(), R.string.error_no_connection, Toast.LENGTH_LONG);
+                            toast.show();
+                        }
+                        else {
+
+                            NetworkResponse response = error.networkResponse;
+
+                            if (response != null && response.data != null) {
+
+                                if (response.statusCode == 401) {
+                                    Toast toast = Toast.makeText(getApplicationContext(), R.string.error_wrong_login, Toast.LENGTH_LONG);
                                     toast.show();
                                 }
-
-                            }
-                        },
-
-                        new Response.ErrorListener() {
-
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-
-                            /*
-                             * http://stackoverflow.com/a/21868734/1969761
-                             */
-
-                                String json;
-
-                                NetworkResponse response = error.networkResponse;
-                                if (response.data != null) {
-
-                                    if (response.statusCode == 401) {
-                                        Toast toast = Toast.makeText(getApplicationContext(), R.string.error_wrong_login, Toast.LENGTH_LONG);
+                                else if (response.statusCode == 400) {
+                                    Toast toast = Toast.makeText(getApplicationContext(), R.string.error_server_off, Toast.LENGTH_LONG);
+                                    toast.show();
+                                }
+                                else {
+                                    try {
+                                        String responseBody = new String(error.networkResponse.data);
+                                        JSONObject jsonObject = new JSONObject(responseBody);
+                                        String message = jsonObject.getString("message");
+                                        Toast toast = Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG);
                                         toast.show();
-                                    } else if (response.statusCode == 400) {
-                                        Toast toast = Toast.makeText(getApplicationContext(), R.string.error_server_off, Toast.LENGTH_LONG);
+
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+
+                                        Toast toast = Toast.makeText(getApplicationContext(), R.string.error_oups, Toast.LENGTH_LONG);
                                         toast.show();
-                                    } else {
-                                        json = new String(response.data);
-                                        json = MySingleton.trimMessage(json, "message");
-                                        if (json != null) {
-                                            Toast toast = Toast.makeText(getApplicationContext(), json, Toast.LENGTH_LONG);
-                                            toast.show();
-                                        }
                                     }
 
                                 }
-
-
                             }
                         }
-                );
-                VolleyApplication.getInstance().getRequestQueue().add(jsObjRequest);
+                    }
 
-            }
-            else {
-                Toast toast = Toast.makeText(getApplicationContext(), R.string.error_offline, Toast.LENGTH_LONG);
-                toast.show();
-            }
+                }
+            ) {
+                /**
+                 * Passing some request headers
+                 **/
+                @Override
+                public Map<String, String> getHeaders() throws AuthFailureError {
+                    HashMap<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", "application/json");
+                    return headers;
+                }
+            };
+            VolleyApplication.getInstance().getRequestQueue().add(jsObjRequest);
 
         } else {
             Toast toast = Toast.makeText(this, R.string.from_empty, Toast.LENGTH_SHORT);
@@ -162,11 +152,22 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    public boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        return netInfo != null && netInfo.isConnectedOrConnecting();
+    public void toggleVisibility(View view) {
+
+        EditText editText = (EditText) findViewById(R.id.act_login_password);
+        CheckBox checkBox = (CheckBox) findViewById(R.id.togglePasswordVisibility);
+
+        int start = editText.getSelectionStart();
+        int end = editText.getSelectionEnd();
+
+        if (checkBox.isChecked()) {
+            editText.setTransformationMethod(null);
+        }
+        else {
+            editText.setTransformationMethod(new PasswordTransformationMethod());
+        }
+
+        editText.setSelection(start, end);
     }
 
 }

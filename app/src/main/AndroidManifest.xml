@@ -33,6 +33,14 @@
             android:name=".MyAppActivity"
             android:label="@string/title_activity_my_app" >
         </activity>
+        <activity
+            android:name=".NewGroupActivity"
+            android:label="@string/title_activity_new_group"
+            android:parentActivityName=".MyAppActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MyAppActivity" />
+        </activity>
     </application>
 
 </manifest>

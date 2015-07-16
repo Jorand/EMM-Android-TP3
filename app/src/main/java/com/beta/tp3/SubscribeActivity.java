@@ -1,26 +1,18 @@
 package com.beta.tp3;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.content.Context;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.text.method.PasswordTransformationMethod;
 import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
+import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
+import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -30,141 +22,153 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
-public class SubscribeActivity extends AppCompatActivity {
-
-    private SharedPreferences preferences;
-    private TextView mTextView;
+public class SubscribeActivity extends AppActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subscribe);
 
-        preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        // Auto-complete suggestions user account emails
+        ArrayList<String> accountsEmails = getUserAccountEmail();
+        setAutoCompleteText(R.id.act_subscribe_email, accountsEmails);
 
-        final ArrayList<String> stringArrayList = new ArrayList<>();
+        EditText passwordField = (EditText) findViewById(R.id.act_subscribe_password);
+        passwordField.setTransformationMethod(new PasswordTransformationMethod());
 
-        try{
-            AccountManager manager = (AccountManager) getSystemService(ACCOUNT_SERVICE);
-            Account[] accounts = manager.getAccountsByType("com.google");
-
-            for (Account account : accounts) {
-                stringArrayList.add(account.name);
-            }
-
-            AutoCompleteTextView textView = (AutoCompleteTextView) findViewById(R.id.act_subscribe_email);
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, stringArrayList);
-            textView.setAdapter(adapter);
-
-        }
-        catch(Exception e)
-        {
-            Log.i("Exception", "Exception:" + e) ;
-        }
     }
 
     public void onClickSubscribe(View view) {
 
-        EditText editTextName = (EditText) findViewById(R.id.act_subscribe_name);
-        final String name = editTextName.getText().toString();
+        final String name = getEditTextValue(R.id.act_subscribe_name);
+        final String email = getEditTextValue(R.id.act_subscribe_email);
+        final String password = getEditTextValue(R.id.act_subscribe_password);
 
-        EditText editTextEmail = (EditText) findViewById(R.id.act_subscribe_email);
-        final String email = editTextEmail.getText().toString();
+        if (!name.isEmpty() && !email.isEmpty() && !password.isEmpty()) {
 
-        EditText editTextPassword = (EditText) findViewById(R.id.act_subscribe_password);
-        final String password = editTextPassword.getText().toString();
+            final ProgressDialog pDialog = new ProgressDialog(this);
+            pDialog.setMessage("Loading...");
+            pDialog.show();
 
-        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-
-            Toast toast = Toast.makeText(this, R.string.from_empty, Toast.LENGTH_SHORT);
-            toast.show();
-        }
-        else {
-
+            String url = "http://questioncode.fr:10007/api/users";
             String json = "{\"name\": \""+ name +"\", \"email\": \""+ email +"\", \"password\": \""+ password +"\"}";
 
-            if (isOnline()) {
+            JsonObjectRequest jsObjRequest = new JsonObjectRequest(Request.Method.POST, url, json,
+                    new Response.Listener<JSONObject>() {
 
-                JsonObjectRequest jsObjRequest = new JsonObjectRequest(Request.Method.POST, "http://questioncode.fr:10007/api/users", json,
-                        new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(JSONObject response) {
+                            pDialog.hide();
 
-                            @Override
-                            public void onResponse(JSONObject response) {
+                            try {
+                                JSONObject json = new JSONObject(response.toString());
+                                String token = json.getString("token");
 
-                                String token;
+                                SharedPreferences.Editor editor = preferences.edit();
+                                editor.putString(email + "_name", name);
+                                editor.putString(email + "_password", password);
+                                editor.putString(email + "_token", token);
+                                editor.putString("ACTIVE_USER", email);
+                                editor.apply();
 
-                                JSONObject json;
+                                Intent mainIntent = new Intent(getApplicationContext(), MainActivity.class);
+                                mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                startActivity(mainIntent);
+                                finish();
 
-                                try {
-                                    json = new JSONObject(response.toString());
-                                    token = json.getString("token");
+                            } catch (JSONException e) {
 
-                                    SharedPreferences.Editor editor = preferences.edit();
-                                    editor.putString(email + "_name", name);
-                                    editor.putString(email + "_password", password);
-                                    editor.putString(email + "_token", token);
-                                    editor.putString("ACTIVE_USER", email);
-                                    editor.apply();
-
-                                    Intent mainIntent = new Intent(getApplicationContext(), MainActivity.class);
-                                    mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                    startActivity(mainIntent);
-                                    finish();
-
-                                } catch (JSONException e) {
-
-                                }
-
+                                Toast toast = Toast.makeText(getApplicationContext(), R.string.act_login_error, Toast.LENGTH_LONG);
+                                toast.show();
                             }
-                        },
+                        }
 
-                        new Response.ErrorListener() {
+                    },
 
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
+                    new Response.ErrorListener() {
 
-                            /*
-                             * http://stackoverflow.com/a/21868734/1969761
-                             */
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            pDialog.hide();
 
-                                String json;
+                            if (error instanceof NoConnectionError) {
+                                Toast toast = Toast.makeText(getApplicationContext(), R.string.error_no_connection, Toast.LENGTH_LONG);
+                                toast.show();
+                            }
+                            else {
 
                                 NetworkResponse response = error.networkResponse;
-                                if (response.data != null) {
 
-                                    if (response.statusCode == 422) {
-                                        Toast toast = Toast.makeText(getApplicationContext(), R.string.error_user_exist, Toast.LENGTH_LONG);
-                                        toast.show();
-                                    } else if (response.statusCode == 400) {
+                                if (response != null && response.data != null) {
+
+                                    if (response.statusCode == 400) {
                                         Toast toast = Toast.makeText(getApplicationContext(), R.string.error_server_off, Toast.LENGTH_LONG);
                                         toast.show();
-                                    } else {
-                                        json = new String(response.data);
-                                        json = MySingleton.trimMessage(json, "message");
-                                        if (json != null) {
-                                            Toast toast = Toast.makeText(getApplicationContext(), json, Toast.LENGTH_LONG);
+                                    }
+                                    else if (response.statusCode == 422) {
+                                        Toast toast = Toast.makeText(getApplicationContext(), R.string.error_user_exist, Toast.LENGTH_LONG);
+                                        toast.show();
+                                    }
+                                    else {
+                                        try {
+                                            String responseBody = new String(error.networkResponse.data);
+                                            JSONObject jsonObject = new JSONObject(responseBody);
+                                            String message = jsonObject.getString("message");
+                                            Toast toast = Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG);
+                                            toast.show();
+
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+
+                                            Toast toast = Toast.makeText(getApplicationContext(), R.string.error_oups, Toast.LENGTH_LONG);
                                             toast.show();
                                         }
+
                                     }
                                 }
                             }
                         }
-                );
-                VolleyApplication.getInstance().getRequestQueue().add(jsObjRequest);
-            }
-            else {
-                Toast toast = Toast.makeText(getApplicationContext(), R.string.error_offline, Toast.LENGTH_LONG);
-                toast.show();
-            }
 
+                    }
+            ) {
+                /**
+                 * Passing some request headers
+                 **/
+                @Override
+                public Map<String, String> getHeaders() throws AuthFailureError {
+                    HashMap<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", "application/json");
+                    return headers;
+                }
+            };
+            VolleyApplication.getInstance().getRequestQueue().add(jsObjRequest);
+
+        } else {
+            Toast toast = Toast.makeText(this, R.string.from_empty, Toast.LENGTH_SHORT);
+            toast.show();
         }
+
     }
 
-    public boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        return netInfo != null && netInfo.isConnectedOrConnecting();
+    public void toggleVisibility(View view) {
+
+        EditText editText = (EditText) findViewById(R.id.act_subscribe_password);
+
+        CheckBox checkBox = (CheckBox) findViewById(R.id.togglePasswordVisibility);
+
+        int start = editText.getSelectionStart();
+        int end = editText.getSelectionEnd();
+
+        if (checkBox.isChecked()) {
+            editText.setTransformationMethod(null);
+        }
+        else {
+            editText.setTransformationMethod(new PasswordTransformationMethod());
+        }
+
+        editText.setSelection(start, end);
     }
 }

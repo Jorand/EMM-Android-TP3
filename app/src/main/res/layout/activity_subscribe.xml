@@ -24,7 +24,6 @@
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:inputType="textPassword"
         android:ems="10"
         android:id="@+id/act_subscribe_password"
         android:hint="@string/form_password"
@@ -64,5 +63,19 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:hint="@string/form_email" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/togglePasswordVisibility"
+        android:button="@drawable/checkbox_show_password_style"
+        android:background="@null"
+        android:onClick="toggleVisibility"
+        android:paddingRight="10dp"
+        android:paddingLeft="0dp"
+        android:layout_alignBaseline="@+id/act_subscribe_password"
+        android:layout_alignBottom="@+id/act_subscribe_password"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 
 </RelativeLayout>

@@ -28,4 +28,12 @@
     <string name="dialog_exit_title">Se déconnecter ?</string>
     <string name="yes">Oui</string>
     <string name="cancel">Non</string>
+    <string name="act_login_error">Une erreur est survenue lors de la connexion. veuillez réessayer.</string>
+    <string name="error_no_connection">Pas d\'access internet. Vérifiez votre connexion.</string>
+    <string name="error_oups">Oups! Une erreur s\'est produite.</string>
+    <string name="action_add_group">Ajouter un groupe</string>
+    <string name="title_activity_new_group">Ajouter un groupe</string>
+    <string name="act_new_group_name">Nom du group</string>
+    <string name="act_new_group_emails_guest">Invités (email,email…)</string>
+    <string name="act_new_group_button">Ajouter</string>
 </resources>
