@@ -36,7 +36,14 @@
         <activity
             android:name=".NewGroupActivity"
             android:label="@string/title_activity_new_group"
-            android:parentActivityName=".MyAppActivity">
+            android:parentActivityName=".MyAppActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MyAppActivity" />
+        </activity>
+        <activity
+            android:name=".GroupRoomActivity"
+            android:label="@string/title_activity_group_room" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MyAppActivity" />

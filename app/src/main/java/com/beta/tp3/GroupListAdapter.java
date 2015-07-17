@@ -29,7 +29,7 @@ public class GroupListAdapter extends ArrayAdapter<Groups> {
         TextView tvHome = (TextView) convertView.findViewById(R.id.group_desc);
 
         tvName.setText(group.title);
-        tvHome.setText(group.info);
+        tvHome.setText(group.id);
 
         return convertView;
     }

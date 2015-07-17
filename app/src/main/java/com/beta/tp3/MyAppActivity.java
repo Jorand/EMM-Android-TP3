@@ -1,5 +1,6 @@
 package com.beta.tp3;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -8,6 +9,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,11 +35,14 @@ public class MyAppActivity extends AppActivity {
 
     ListView mListView;
     private String user_token;
+    private MySingleton mySingleton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_app);
+
+        mySingleton = MySingleton.getInstance(this);
 
         String user_email = preferences.getString("ACTIVE_USER", "");
         String user_name = preferences.getString(user_email + "_name", "");
@@ -203,12 +209,25 @@ public class MyAppActivity extends AppActivity {
         VolleyApplication.getInstance().getRequestQueue().add(jsObjRequest);
     }
 
-    private void setGroupListAdapter(ArrayList<Groups> groups) {
+    private void setGroupListAdapter(final ArrayList<Groups> groups) {
 
         GroupListAdapter adapter = new GroupListAdapter(this, groups);
 
-        ListView listView = (ListView) findViewById(R.id.groupListView);
+        final ListView listView = (ListView) findViewById(R.id.groupListView);
         listView.setAdapter(adapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                Groups group = groups.get(position);
+                Log.d("TE", group.id);
+
+                Intent intent = new Intent(getApplicationContext(), GroupRoomActivity.class);
+                intent.putExtra("GROUP_ID", group.id);
+                startActivity(intent);
+            }
+        });
     }
 
     public void addGroup(MenuItem item) {

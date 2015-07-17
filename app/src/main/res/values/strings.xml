@@ -36,4 +36,8 @@
     <string name="act_new_group_name">Nom du group</string>
     <string name="act_new_group_emails_guest">Invités (email,email…)</string>
     <string name="act_new_group_button">Ajouter</string>
+    <string name="title_activity_group_room">Nom du group</string>
+    <string name="act_group_room_input">Votre message…</string>
+    <string name="btn_send">Envoyer</string>
+    <string name="act_msg_sended">Message envoyé</string>
 </resources>
